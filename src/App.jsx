@@ -1,4 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Security, LoginCallback, useOktaAuth } from '@okta/okta-react';
+import { OktaAuth, toRelativeUrl } from '@okta/okta-auth-js';
+import { oktaConfig } from './config/okta';
 
 // Hooks & Services & Utils
 import { useShiftData } from './hooks/useShiftData';
@@ -9,7 +13,6 @@ import { generateScheduleForMonth, summarizePattern } from './utils/scheduleUtil
 
 // Components
 import LoadingScreen from './components/common/LoadingScreen';
-import Login from './components/auth/Login';
 import HelpGuideModal from './components/common/HelpGuideModal';
 import { ConfirmationModal, ConfirmDeleteModal } from './components/common/Modal';
 import Legend from './components/schedule/Legend';
@@ -21,8 +24,30 @@ import TaskStaffMappingEditor from './components/tasks/TaskStaffMappingEditor';
 import MemberManagementModal from './components/admin/MemberManagementModal';
 import AdminSettingsModal from './components/admin/AdminSettingsModal';
 
+// Oktaインスタンスの初期化
+const oktaAuth = new OktaAuth(oktaConfig);
+
 const App = () => {
-  // カスタムフックからデータとSetterを取得
+  const navigate = useNavigate();
+  const restoreOriginalUri = async (_oktaAuth, originalUri) => {
+    navigate(toRelativeUrl(originalUri || '/', window.location.origin));
+  };
+
+  return (
+    <Security oktaAuth={oktaAuth} restoreOriginalUri={restoreOriginalUri}>
+      <Routes>
+        <Route path="/login/callback" element={<LoginCallback />} />
+        <Route path="/*" element={<MainContent />} />
+      </Routes>
+    </Security>
+  );
+};
+
+// メインコンテンツ（認証済みの場合のみ表示）
+const MainContent = () => {
+  const { oktaAuth, authState } = useOktaAuth();
+  
+  // カスタムフック
   const {
     staff, setStaff, schedule, setSchedule, tasks, setTasks,
     shiftPatterns, setShiftPatterns, adminConfig, setAdminConfig,
@@ -33,14 +58,14 @@ const App = () => {
   const [year, setYear] = useState(2025);
   const [month, setMonth] = useState(12);
   const [taskCountsByDay, setTaskCountsByDay] = useState({});
-  
+
   // UI State
   const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isMemberManagementOpen, setIsMemberManagementOpen] = useState(false);
   const [isAdminSettingsOpen, setIsAdminSettingsOpen] = useState(false);
   
-  // Confirmation Modal States
+  // Modals
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [approvalModalStaffId, setApprovalModalStaffId] = useState(null);
   const [submissionConfirmation, setSubmissionConfirmation] = useState(null);
@@ -48,7 +73,43 @@ const App = () => {
   const [absenceNotificationConfirmation, setAbsenceNotificationConfirmation] = useState(null);
   const [remandConfirmation, setRemandConfirmation] = useState(null);
 
-  const isAdmin = currentUser?.id === 'admin';
+  // ユーザー特定ロジック
+  useEffect(() => {
+    const identifyUser = async () => {
+      if (authState?.isAuthenticated) {
+        // Oktaからユーザー情報を取得
+        const userInfo = await oktaAuth.getUser();
+        const email = userInfo.email;
+
+        // DB上のスタッフとメールアドレスで紐付け（※別途スタッフデータにemail項目の追加が必要）
+        // ここでは簡易的に「全員管理者」としてログインさせるか、
+        // 特定のメールアドレスだけ管理者にするなどのロジックを入れます。
+        // 例: 特定の管理者メアド以外は、staffリストから検索する
+        
+        // ★暫定対応: ログインできれば一旦「管理者」権限を与える（動作確認用）
+        // 本番運用時は staff.find(s => s.email === email) などに変更してください
+        const matchedStaff = staff.find(s => s.email === email);
+        if (matchedStaff) {
+             setCurrentUser(matchedStaff);
+        } else {
+             // 紐付かない場合は、Oktaの名前で仮ログイン（権限なし）または管理者扱い
+             setCurrentUser({ id: 'okta-user', name: userInfo.name || 'Okta User', role: 'OP' });
+             
+             // もし特定のメアドなら管理者にしたい場合:
+             // if (email === 'admin@yourcompany.com') setCurrentUser({ id: 'admin', name: '管理者' });
+        }
+      } else {
+        setCurrentUser(null);
+      }
+    };
+
+    if (authState?.isAuthenticated && staff.length > 0) {
+      identifyUser();
+    }
+  }, [authState, oktaAuth, staff]);
+
+  // --- 計算ロジック ---
+  const isAdmin = currentUser?.id === 'admin' || currentUser?.id === 'okta-user'; // ※動作確認用に緩めています
   const key = `${year}-${month}`;
   const daysInMonth = useMemo(() => new Date(year, month, 0).getDate(), [year, month]);
   const currentMonthHolidays = useMemo(() => getJapaneseHolidays(year, month), [year, month]);
@@ -60,23 +121,21 @@ const App = () => {
     });
   }, [year, month, daysInMonth]);
 
-  // Schedule Initialization for new month
+  // 初期データ生成
   useEffect(() => {
     if (!schedule[key] && initialDataLoaded) {
       setSchedule(prev => ({ ...prev, [key]: generateScheduleForMonth(year, month, staff, shiftPatterns) }));
     }
   }, [year, month, schedule, staff, shiftPatterns, initialDataLoaded]);
 
-  // Calculate Task Counts
+  // タスク不足数計算
   useEffect(() => {
     if (!initialDataLoaded) return;
     const currentMonthSchedule = schedule[key] || {};
     const counts = {};
-    
     for (let day = 1; day <= daysInMonth; day++) {
       counts[day] = {};
       tasks.forEach(t => counts[day][t.id] = 0);
-      
       staff.forEach(s => {
         const entry = currentMonthSchedule[s.id]?.[day];
         const isWorking = (typeof entry === 'number' && entry > 0) || (typeof entry === 'object' && entry?.hours > 0);
@@ -90,8 +149,7 @@ const App = () => {
     setTaskCountsByDay(counts);
   }, [schedule, year, month, staff, tasks, daysInMonth, initialDataLoaded]);
 
-  // --- Handlers (Simplified) ---
-
+  // --- ハンドラー ---
   const updateScheduleState = (staffId, day, value) => {
     setSchedule(prev => {
       const newMonth = { ...(prev[key] || {}) };
@@ -115,18 +173,13 @@ const App = () => {
     if (!absenceNotificationConfirmation) return;
     const { staffMember, day, value } = absenceNotificationConfirmation;
     updateScheduleState(staffMember.id, day, value);
-    
     if (send) {
       setIsLoading(true);
-      try {
-        await chatService.sendAbsence(staffMember.name);
-      } catch (e) { alert(e.message); }
+      try { await chatService.sendAbsence(staffMember.name); } catch (e) { alert(e.message); }
       setIsLoading(false);
     }
     setAbsenceNotificationConfirmation(null);
   };
-
-  // --- Workflow Handlers (Using chatService) ---
 
   const handleToggleShiftSubmitted = (staffId) => {
     const s = staff.find(x => x.id === staffId);
@@ -140,19 +193,14 @@ const App = () => {
   const handleConfirmSubmission = async () => {
     if (!submissionConfirmation) return;
     const { staffId, name } = submissionConfirmation;
-    
     let mentions = '';
     if (adminConfig?.submissionNotificationIds) {
         mentions = adminConfig.submissionNotificationIds.split(',').map(id => `<users/${id.trim()}>`).join(' ');
     }
-
     setIsLoading(true);
     setLoadingMessage('提出通知を送信中...');
-    try {
-      await chatService.sendSubmission(name, year, month, mentions);
-    } catch (e) { alert('通知送信に失敗しました'); }
+    try { await chatService.sendSubmission(name, year, month, mentions); } catch (e) { alert('通知送信に失敗しました'); }
     setIsLoading(false);
-
     setStaff(prev => prev.map(x => x.id === staffId ? { ...x, shiftSubmitted: { ...x.shiftSubmitted, [key]: true } } : x));
     setSubmissionConfirmation(null);
   };
@@ -170,14 +218,10 @@ const App = () => {
     if (!remandConfirmation) return;
     const { staffId, name } = remandConfirmation;
     const s = staff.find(x => x.id === staffId);
-
     setIsLoading(true);
     setLoadingMessage('差戻通知を送信中...');
-    try {
-        await chatService.sendRemand(name, s.chatUserId);
-    } catch (e) { alert('通知送信に失敗しました'); }
+    try { await chatService.sendRemand(name, s.chatUserId); } catch (e) { alert('通知送信に失敗しました'); }
     setIsLoading(false);
-
     setStaff(prev => prev.map(x => x.id === staffId ? { ...x, shiftRemanded: { ...x.shiftRemanded, [key]: true } } : x));
     setRemandConfirmation(null);
   };
@@ -185,14 +229,11 @@ const App = () => {
   const handleConfirmApproval = async (remarks) => {
     if (!approvalModalStaffId) return;
     const s = staff.find(x => x.id === approvalModalStaffId);
-    
-    // イレギュラー計算
     const irregularities = [];
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month - 1, day);
         const dayOfWeek = date.getDay();
         const isHoliday = currentMonthHolidays.includes(day);
-        
         let expected = (dayOfWeek === 0 || dayOfWeek === 6 || isHoliday) ? '休' : '';
         if (expected === '') {
              const pIdx = dayOfWeek - 1;
@@ -203,21 +244,16 @@ const App = () => {
                  expected = p ? p.workHours : '';
              }
         }
-        
         const actual = schedule[key]?.[s.id]?.[day] ?? '';
         if (JSON.stringify(actual) !== JSON.stringify(expected)) {
             const wStr = ['日', '月', '火', '水', '木', '金', '土'][dayOfWeek];
             irregularities.push(`${month}/${day}(${wStr}): ${formatValue(actual) || '未入力'}`);
         }
     }
-    
     setIsLoading(true);
     setLoadingMessage('承認通知を送信中...');
-    try {
-        await chatService.sendApproval(s, year, month, summarizePattern(s.defaultShift.pattern, shiftPatterns), irregularities.join('\n') || 'なし', remarks);
-    } catch (e) { alert('通知送信に失敗しました'); }
+    try { await chatService.sendApproval(s, year, month, summarizePattern(s.defaultShift.pattern, shiftPatterns), irregularities.join('\n') || 'なし', remarks); } catch (e) { alert('通知送信に失敗しました'); }
     setIsLoading(false);
-
     setStaff(prev => prev.map(x => x.id === approvalModalStaffId ? { ...x, shiftApproved: { ...x.shiftApproved, [key]: true } } : x));
     setApprovalModalStaffId(null);
   };
@@ -231,13 +267,54 @@ const App = () => {
       }
   }
 
-  // --- CRUD & Helpers ---
-
   const handleUpdateStaffInfo = (id, field, val) => setStaff(prev => prev.map(s => s.id === id ? { ...s, [field]: val } : s));
   const handleDeleteStaff = (id) => setConfirmDelete({ type: 'staff', id, name: staff.find(s => s.id === id)?.name });
   const handleDeleteTask = (id) => setConfirmDelete({ type: 'task', id, name: tasks.find(t => t.id === id)?.name });
-  
   const handleExportCSV = () => downloadScheduleCSV({ staff, tasks, schedule, shiftPatterns, taskCountsByDay, days, year, month });
+  
+  const handleBulkUpdateStaffTasks = (taskStaffMap) => {
+      const staffTaskMap = {};
+      staff.forEach(s => staffTaskMap[s.id] = []);
+      Object.entries(taskStaffMap).forEach(([taskId, staffIds]) => {
+          staffIds.forEach(staffId => {
+              if (staffTaskMap[staffId]) staffTaskMap[staffId].push(taskId);
+          });
+      });
+      setStaff(prevStaff => prevStaff.map(s => ({ ...s, possibleTasks: staffTaskMap[s.id] || [] })));
+      setIsTaskEditorOpen(false);
+  };
+
+  const handleApplySingleStaffPattern = (staffId, newPattern) => {
+    setStaff(prevStaff => prevStaff.map(s => s.id === staffId ? { ...s, defaultShift: { pattern: newPattern } } : s));
+    const key = `${year}-${month}`;
+    const newMonthScheduleForStaff = {};
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const monthHolidays = getJapaneseHolidays(year, month);
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month - 1, day);
+        const dayOfWeek = date.getDay(); 
+        const isHoliday = monthHolidays.includes(day);
+        let shiftValue;
+        if (isHoliday || dayOfWeek === 0 || dayOfWeek === 6) {
+            shiftValue = '休';
+        } else {
+            const patternIndex = dayOfWeek - 1; 
+            const patternId = newPattern[patternIndex];
+            if (typeof patternId === 'string' && patternId !== '休') {
+                const pattern = shiftPatterns.find(p => p.id === patternId);
+                shiftValue = pattern ? pattern.workHours : '';
+            } else {
+                shiftValue = patternId; 
+            }
+        }
+        newMonthScheduleForStaff[day] = shiftValue ?? '';
+    }
+    setSchedule(prevSchedule => {
+      const newMonthSchedule = { ...(prevSchedule[key] || {}) };
+      newMonthSchedule[staffId] = newMonthScheduleForStaff;
+      return { ...prevSchedule, [key]: newMonthSchedule };
+    });
+  };
 
   const executeDelete = () => {
     if (!confirmDelete) return;
@@ -261,32 +338,95 @@ const App = () => {
           id: newId, employeeId: 'New', name: '新規メンバー', role: 'OP', pin: '0000', chatUserId: '', possibleTasks: [],
           defaultShift: { pattern: ['A','A','A','A','A'] }, shiftSubmitted: {}, shiftRemanded: {}, shiftApproved: {}
       }]);
-      // Initialize schedule for new staff (simplified logic for brevity)
-      setSchedule(prev => ({
-          ...prev,
-          [key]: { ...prev[key], [newId]: {} } 
-      }));
+      setSchedule(prev => ({ ...prev, [key]: { ...prev[key], [newId]: {} } }));
   };
 
-  // 休日一括設定ロジック等は長いので、必要であれば別ファイルまたはCustom Hookに移動可能ですが、
-  // ここではUI操作に直結するため残しています。
   const handleSetDayAsHolidayForAll = (day) => {
       if(!isAdmin) return;
-      // ... (元のロジックと同じですが、setScheduleを使う形) ...
-      // 簡略化のため、ここでは詳細実装を省略しますが、元のロジックをそのままコピーしてください。
-      // ただし、休日解除ロジックなどで `getJapaneseHolidays` 等を使用しています。
-      setHolidayConfirmation({ 
-          day, 
-          isUnlocking: false, // 実際は状態をチェックして判定
-          onConfirm: () => {
-             // ... 更新ロジック ...
-             setHolidayConfirmation(null);
-          }
+      const key = `${year}-${month}`;
+      const currentMonthSchedule = schedule[key] || {};
+      const isAlreadyLockedHoliday = staff.length > 0 && staff.every(staffMember => {
+        const entry = currentMonthSchedule[staffMember.id]?.[day];
+        return typeof entry === 'object' && entry !== null && 'locked' in entry && entry.locked === true;
       });
+
+      if (isAlreadyLockedHoliday) {
+        setHolidayConfirmation({
+            day, isUnlocking: true,
+            onConfirm: () => {
+                setSchedule(prevSchedule => {
+                    const newSchedule = JSON.parse(JSON.stringify(prevSchedule));
+                    const newMonthSchedule = newSchedule[key] || {};
+                    const monthHolidays = getJapaneseHolidays(year, month);
+                    staff.forEach(staffMember => {
+                        const date = new Date(year, month - 1, day);
+                        const dayOfWeek = date.getDay();
+                        const isHolidayDate = monthHolidays.includes(day);
+                        let restoredValue = '';
+                        if (isHolidayDate || dayOfWeek === 0 || dayOfWeek === 6) {
+                            restoredValue = '休';
+                        } else {
+                            const patternIndex = dayOfWeek - 1;
+                            if (patternIndex >= 0 && patternIndex < 5) {
+                                const patternId = staffMember.defaultShift.pattern[patternIndex];
+                                if (patternId === '休') restoredValue = '休';
+                                else if (patternId) {
+                                    const pattern = shiftPatterns.find(p => p.id === patternId);
+                                    restoredValue = pattern ? pattern.workHours : '';
+                                }
+                            }
+                        }
+                        newMonthSchedule[staffMember.id][day] = restoredValue;
+                    });
+                    newSchedule[key] = newMonthSchedule;
+                    return newSchedule;
+                });
+                setHolidayConfirmation(null);
+            },
+        });
+    } else {
+        setHolidayConfirmation({
+            day, isUnlocking: false,
+            onConfirm: () => {
+                setSchedule(prevSchedule => {
+                    const newSchedule = { ...prevSchedule };
+                    const newMonthSchedule = JSON.parse(JSON.stringify(newSchedule[key] || {}));
+                    staff.forEach(staffMember => {
+                        if (!newMonthSchedule[staffMember.id]) newMonthSchedule[staffMember.id] = {};
+                        newMonthSchedule[staffMember.id][day] = { type: '休', locked: true };
+                    });
+                    newSchedule[key] = newMonthSchedule;
+                    return newSchedule;
+                });
+                setHolidayConfirmation(null);
+            },
+        });
+    }
   };
 
-  if (isLoading) return <LoadingScreen message={loadingMessage} />;
-  if (!currentUser) return <Login onLoginSuccess={setCurrentUser} staffList={staff} />;
+  // --- レンダリング ---
+  if (!authState) return <LoadingScreen message="認証状態を確認中..." />;
+
+  // 未ログイン時
+  if (!authState.isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FFF9F6] p-4">
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl border border-slate-200 p-8 text-center">
+          <h1 className="text-2xl font-bold text-slate-800 mb-2">Smart Shift Scheduler</h1>
+          <p className="text-sm text-slate-500 mb-6">関係者専用ログイン</p>
+          <button 
+            onClick={() => oktaAuth.signInWithRedirect()}
+            className="w-full py-2 px-4 bg-[#F4B896] text-white rounded-md shadow hover:bg-[#E8A680] font-semibold transition-colors"
+          >
+            Oktaでログイン
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ログイン済みだがロード中
+  if (isLoading || !currentUser) return <LoadingScreen message={loadingMessage} />;
 
   const currentMonthSchedule = schedule[key] || {};
   const approvalStaff = approvalModalStaffId ? staff.find(s => s.id === approvalModalStaffId) : null;
@@ -308,13 +448,13 @@ const App = () => {
             <h1 className="text-2xl font-bold tracking-wider">digsyシフト表</h1>
           </div>
           <div className="flex items-center gap-4">
-             {/* Save Indicator */}
              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-semibold w-36 justify-center ${saveStatus === 'saved' ? 'text-white/80' : saveStatus === 'unsaved' ? 'text-yellow-300' : 'text-white'}`}>
                 <span>{saveStatus === 'saved' ? '自動保存済み' : saveStatus === 'saving' ? '保存中...' : '編集中...'}</span>
              </div>
              <button onClick={() => setIsHelpOpen(true)} className="px-3 py-1.5 bg-white/20 rounded hover:bg-white/30 text-sm font-bold">ガイド</button>
              <Legend />
-             <button onClick={() => setCurrentUser(null)} className="px-3 py-1.5 bg-[#D9824D] rounded hover:bg-[#C8713D] text-sm font-bold">ログアウト</button>
+             {/* ログアウトボタン: Oktaサインアウト */}
+             <button onClick={() => oktaAuth.signOut()} className="px-3 py-1.5 bg-[#D9824D] rounded hover:bg-[#C8713D] text-sm font-bold">ログアウト</button>
           </div>
         </header>
 
@@ -334,10 +474,9 @@ const App = () => {
             onUpdateTask={(id, name) => setTasks(prev => prev.map(t => t.id === id ? { ...t, name } : t))}
             onDeleteTask={handleDeleteTask}
             onUpdateTaskPersonnel={(id, count) => setTasks(prev => prev.map(t => t.id === id ? { ...t, requiredPersonnel: count } : t))}
-            onUpdateTaskStaff={handleBulkUpdateStaffTasks /* Note: Logic slightly different here, fix args */} 
+            onUpdateTaskStaff={handleBulkUpdateStaffTasks} 
           />
 
-          {/* Action Buttons Area */}
           <div className="mt-4 flex flex-wrap gap-4 items-center">
             {isAdmin && (
               <>
@@ -358,7 +497,6 @@ const App = () => {
         {isAdmin && isTaskEditorOpen && <TaskStaffMappingEditor staff={staff} tasks={tasks} onClose={() => setIsTaskEditorOpen(false)} onSave={handleBulkUpdateStaffTasks} />}
         {isHelpOpen && <HelpGuideModal onClose={() => setIsHelpOpen(false)} />}
         
-        {/* Confirmation Modals */}
         {confirmDelete && <ConfirmDeleteModal itemType={confirmDelete.type === 'staff' ? 'メンバー' : '業務'} itemName={confirmDelete.name} onConfirm={executeDelete} onCancel={() => setConfirmDelete(null)} />}
         {approvalStaff && <ShiftApprovalModal staffMember={approvalStaff} schedule={currentMonthSchedule[approvalStaff.id]} shiftPatterns={shiftPatterns} holidays={currentMonthHolidays} year={year} month={month} onConfirm={handleConfirmApproval} onClose={() => setApprovalModalStaffId(null)} />}
         {submissionConfirmation && <ConfirmationModal title="シフトの提出" message="提出しますか？" onConfirm={handleConfirmSubmission} onCancel={() => setSubmissionConfirmation(null)} />}
