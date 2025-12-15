@@ -76,3 +76,20 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
                 </tr>
               ))}
             </tbody>
+          </table>
+        </main>
+        
+        <footer className="p-4 border-t border-slate-200 flex justify-end gap-2 bg-slate-50 rounded-b-lg">
+          <button onClick={onClose} className="px-4 py-2 text-sm bg-slate-200 text-slate-800 rounded-md hover:bg-slate-300">
+            キャンセル
+          </button>
+          <button onClick={handleSave} className="px-4 py-2 text-sm bg-[#F4B896] text-white rounded-md hover:bg-[#E8A680]">
+            保存して閉じる
+          </button>
+        </footer>
+      </div>
+    </div>
+  );
+};
+
+export default MemberManagementModal;
