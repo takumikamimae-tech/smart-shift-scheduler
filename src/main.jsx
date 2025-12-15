@@ -6,8 +6,8 @@ import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter> {/* 追加 */}
+    <BrowserRouter> {/* アプリ全体を囲む */}
       <App />
-    </BrowserRouter> {/* 追加 */}
+    </BrowserRouter>
   </React.StrictMode>,
 );
