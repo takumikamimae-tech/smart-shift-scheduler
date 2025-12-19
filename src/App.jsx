@@ -79,24 +79,20 @@ const MainContent = () => {
       if (authState?.isAuthenticated) {
         // Oktaからユーザー情報を取得
         const userInfo = await oktaAuth.getUser();
-        const email = userInfo.email;
 
-        // DB上のスタッフとメールアドレスで紐付け（※別途スタッフデータにemail項目の追加が必要）
-        // ここでは簡易的に「全員管理者」としてログインさせるか、
-        // 特定のメールアドレスだけ管理者にするなどのロジックを入れます。
-        // 例: 特定の管理者メアド以外は、staffリストから検索する
-        
-        // ★暫定対応: ログインできれば一旦「管理者」権限を与える（動作確認用）
-        // 本番運用時は staff.find(s => s.email === email) などに変更してください
-        const matchedStaff = staff.find(s => s.email === email);
+        // ★変更箇所: データベース上の「名前」とOktaの「名前」で照合する
+        const matchedStaff = staff.find(s => s.name === userInfo.name);
+
         if (matchedStaff) {
-             setCurrentUser(matchedStaff);
+          setCurrentUser(matchedStaff);
         } else {
-             // 紐付かない場合は、Oktaの名前で仮ログイン（権限なし）または管理者扱い
-             setCurrentUser({ id: 'okta-user', name: userInfo.name || 'Okta User', role: 'OP' });
-             
-             // もし特定のメアドなら管理者にしたい場合:
-             // if (email === 'admin@yourcompany.com') setCurrentUser({ id: 'admin', name: '管理者' });
+          // 名前が一致しない場合は、Oktaの名前で仮ログイン（権限なし）
+          console.log('User name mismatch:', userInfo.name);
+          setCurrentUser({
+            id: 'okta-user',
+            name: userInfo.name || 'Okta User',
+            role: 'OP'
+          });
         }
       } else {
         setCurrentUser(null);
