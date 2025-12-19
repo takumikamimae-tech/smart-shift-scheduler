@@ -18,6 +18,13 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
       prevStaff.map(s => (s.id === staffId ? { ...s, chatUserId: newId } : s))
     );
   };
+
+  // ★追加: メールアドレス変更用の関数
+  const handleEmailChange = (staffId, newEmail) => {
+    setEditedStaff(prevStaff =>
+      prevStaff.map(s => (s.id === staffId ? { ...s, email: newEmail } : s))
+    );
+  };
   
   const handleSave = () => {
     // PINコードの長さチェック
@@ -31,7 +38,7 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
         <header className="p-4 border-b border-slate-200">
           <h2 className="text-lg font-bold text-slate-800">メンバー管理</h2>
           <p className="text-sm text-slate-500">メンバーの情報を確認・編集します。PINコードは4桁の数字で設定してください。</p>
@@ -42,6 +49,8 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">名前</th>
+                {/* ★追加: メールアドレスのヘッダー */}
+                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">メールアドレス</th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">社員番号</th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">役職</th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">PINコード</th>
@@ -52,6 +61,18 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
               {editedStaff.map(member => (
                 <tr key={member.id}>
                   <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-slate-900">{member.name}</td>
+                  
+                  {/* ★追加: メールアドレスの入力欄 */}
+                  <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">
+                    <input
+                      type="email"
+                      value={member.email || ''}
+                      onChange={(e) => handleEmailChange(member.id, e.target.value)}
+                      className="w-48 px-2 py-1 border border-slate-300 rounded-md text-sm focus:outline-none focus:border-[#F4B896] focus:ring-1 focus:ring-[#F4B896]"
+                      placeholder="email@example.com"
+                    />
+                  </td>
+
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">{member.employeeId}</td>
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">{member.role}</td>
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">
