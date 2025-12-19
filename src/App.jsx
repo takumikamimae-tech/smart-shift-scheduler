@@ -80,8 +80,8 @@ const MainContent = () => {
         // Oktaからユーザー情報を取得
         const userInfo = await oktaAuth.getUser();
 
-        // ★変更箇所: データベース上の「名前」とOktaの「名前」で照合する
-        const matchedStaff = staff.find(s => s.name === userInfo.name);
+        // ★変更箇所: データベース上の「email」とOktaの「email」で照合する
+        const matchedStaff = staff.find(s => s.email === userInfo.email);
 
         if (matchedStaff) {
           setCurrentUser(matchedStaff);
