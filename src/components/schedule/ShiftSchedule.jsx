@@ -5,14 +5,15 @@ import { DeleteIcon, SetHolidayIcon, UnlockIcon } from '../common/Icons';
 import { summarizePattern } from '../../utils/scheduleUtils';
 
 const ShiftSchedule = ({ 
-    currentUser, schedule, staff, days, holidays, shiftPatterns, year, month,
+    currentUser, isAdmin, // ★追加: isAdminを受け取る
+    schedule, staff, days, holidays, shiftPatterns, year, month,
     onUpdateSchedule, onDeleteStaff, onUpdateStaffInfo, onApplyStaffPattern, 
     onToggleShiftSubmitted, onToggleShiftApproved, onToggleShiftRemanded, 
     onSetDayAsHolidayForAll 
 }) => {
   // 列の幅設定
   const staffInfoWidth = "60px 100px 120px 150px 60px 60px 60px 40px";
-  const isAdmin = currentUser.id === 'admin';
+  // const isAdmin = currentUser.id === 'admin'; // ★削除またはコメントアウト
   
   const patternSummary = (staffMember) => {
       return summarizePattern(staffMember.defaultShift.pattern, shiftPatterns);
