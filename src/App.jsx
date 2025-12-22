@@ -307,6 +307,25 @@ const MainContent = () => {
       setIsTaskEditorOpen(false);
   };
 
+  // ▼▼▼ 追加: 個別の業務担当者を更新する関数 ▼▼▼
+  const handleUpdateSingleTaskStaff = (taskId, newStaffIds) => {
+    setStaff(prevStaff => prevStaff.map(s => {
+      const isAssigned = newStaffIds.includes(s.id);
+      const currentTasks = s.possibleTasks || [];
+      
+      let newTasks;
+      if (isAssigned) {
+        // 担当に追加（まだ含まれていなければ）
+        newTasks = currentTasks.includes(taskId) ? currentTasks : [...currentTasks, taskId];
+      } else {
+        // 担当から外す
+        newTasks = currentTasks.filter(tid => tid !== taskId);
+      }
+      
+      return { ...s, possibleTasks: newTasks };
+    }));
+  };
+  
   const handleApplySingleStaffPattern = (staffId, newPattern) => {
     setStaff(prevStaff => prevStaff.map(s => s.id === staffId ? { ...s, defaultShift: { pattern: newPattern } } : s));
     const key = `${year}-${month}`;
@@ -499,7 +518,7 @@ const MainContent = () => {
             onUpdateTask={(id, name) => setTasks(prev => prev.map(t => t.id === id ? { ...t, name } : t))}
             onDeleteTask={handleDeleteTask}
             onUpdateTaskPersonnel={(id, count) => setTasks(prev => prev.map(t => t.id === id ? { ...t, requiredPersonnel: count } : t))}
-            onUpdateTaskStaff={handleBulkUpdateStaffTasks} 
+            onUpdateTaskStaff={handleUpdateSingleTaskStaff} 
           />
 
           <div className="mt-4 flex flex-wrap gap-4 items-center">
