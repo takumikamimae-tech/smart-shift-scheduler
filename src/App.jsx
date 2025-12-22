@@ -59,6 +59,17 @@ const MainContent = () => {
   const [month, setMonth] = useState(12);
   const [taskCountsByDay, setTaskCountsByDay] = useState({});
 
+  // 手動で管理者モードにするためのスイッチ
+  const [forceAdminMode, setForceAdminMode] = useState(false);
+
+  // 自動で管理者にするメールアドレスのリスト
+  const ADMIN_EMAILS = [
+    'mina.miyashita@neo-career.co.jp',
+    'yuichiro.kikuchi@neo-career.co.jp',
+    'nana.miura@neo-career.co.jp',
+    'h_tomura@neo-career.co.jp'
+  ];
+  
   // UI State
   const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
