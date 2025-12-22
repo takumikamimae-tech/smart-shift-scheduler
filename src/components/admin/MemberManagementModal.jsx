@@ -4,15 +4,6 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
   // Propsで受け取ったstaffデータを初期値としてコピー
   const [editedStaff, setEditedStaff] = useState(() => JSON.parse(JSON.stringify(staff)));
 
-  const handlePinChange = (staffId, newPin) => {
-    // 数字4桁までのみ許可
-    if (/^\d{0,4}$/.test(newPin)) {
-      setEditedStaff(prevStaff =>
-        prevStaff.map(s => (s.id === staffId ? { ...s, pin: newPin } : s))
-      );
-    }
-  };
-
   const handleChatUserIdChange = (staffId, newId) => {
     setEditedStaff(prevStaff =>
       prevStaff.map(s => (s.id === staffId ? { ...s, chatUserId: newId } : s))
@@ -27,12 +18,6 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
   };
   
   const handleSave = () => {
-    // PINコードの長さチェック
-    const allPinsValid = editedStaff.every(s => s.pin.length === 4);
-    if (!allPinsValid) {
-        alert('すべてのメンバーのPINコードを4桁に設定してください。');
-        return;
-    }
     onSave(editedStaff);
   };
 
@@ -53,7 +38,6 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">メールアドレス</th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">社員番号</th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">役職</th>
-                <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">PINコード</th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Chat User ID</th>
               </tr>
             </thead>
@@ -73,19 +57,6 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
                     />
                   </td>
 
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">{member.employeeId}</td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">{member.role}</td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">
-                    <input
-                      type="text"
-                      value={member.pin}
-                      onChange={(e) => handlePinChange(member.id, e.target.value)}
-                      maxLength={4}
-                      className={`w-20 px-2 py-1 border rounded-md text-sm ${member.pin.length !== 4 ? 'border-red-500' : 'border-slate-300'} focus:outline-none focus:border-[#F4B896] focus:ring-1 focus:ring-[#F4B896]`}
-                      placeholder="4桁"
-                    />
-                  </td>
-                  <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">
                     <input
                       type="text"
                       value={member.chatUserId || ''}
