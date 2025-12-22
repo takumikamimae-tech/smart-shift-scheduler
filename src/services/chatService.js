@@ -38,7 +38,8 @@ export const chatService = {
   // 欠勤通知
   sendAbsence: async (name) => {
     const url = import.meta.env.VITE_CHAT_WEBHOOK_ABSENCE;
-    const message = `お疲れ様です。本日、${name}さんが欠勤です。\n一緒の業務を担当されている方は調整等よろしくお願いします！`;
+    // 文頭に <users/all> を追加することで、Google Chat上で「@全員」として通知されます
+    const message = `<users/all> お疲れ様です。本日、${name}さんが欠勤です。\n一緒の業務を担当されている方は調整等よろしくお願いします！`;
     await sendToChat(url, { text: message });
   },
 
