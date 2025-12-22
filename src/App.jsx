@@ -61,7 +61,17 @@ const MainContent = () => {
 
   // 手動で管理者モードにするためのスイッチ
   const [forceAdminMode, setForceAdminMode] = useState(false);
-
+　
+  // 管理者ログイン時のパスワード判定関数
+  const handleAdminLogin = () => {
+    const password = window.prompt("管理者パスワードを入力してください");
+    if (password === 'digsy-shift-2025') {
+      setForceAdminMode(true);
+    } else if (password !== null) { // キャンセル以外で間違った場合
+      alert("パスワードが違います。");
+    }
+  };
+  
   // 自動で管理者にするメールアドレスのリスト
   const ADMIN_EMAILS = [
     'mina.miyashita@neo-career.co.jp',
@@ -505,7 +515,7 @@ const MainContent = () => {
             {/* ▼▼▼ 追加: 管理者としてログインボタン ▼▼▼ */}
             {!isAdmin && (
               <button 
-                onClick={() => setForceAdminMode(true)} 
+                onClick={handleAdminLogin} 
                 className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
               >
                 管理者としてログイン
