@@ -12,7 +12,7 @@ const TaskShortageDisplay = ({
     // const isAdmin = currentUser.id === 'admin'; // ★削除またはコメントアウト
     
     const getDayHeaderClass = (dayOfWeek, isHoliday) => {
-        let baseClasses = "sticky top-0 z-10 p-2 text-xs font-semibold text-center border-b-2 border-r whitespace-nowrap";
+        let baseClasses = "sticky top-0 z-30 p-2 text-xs font-semibold text-center border-b-2 border-r whitespace-nowrap";
         if (dayOfWeek === '土') {
             return `${baseClasses} bg-sky-100 text-sky-800 border-sky-200`;
         }
@@ -28,7 +28,7 @@ const TaskShortageDisplay = ({
         return 'border-slate-300';
     }
 
-    const stickyHeaderCellClass = "sticky top-0 z-30 bg-slate-200 p-2 border-b-2 border-r border-slate-300 font-semibold text-xs text-center";
+    const stickyHeaderCellClass = "sticky top-0 z-40 bg-slate-200 p-2 border-b-2 border-r border-slate-300 font-semibold text-xs text-center";
 
     return (
         <div className="bg-white rounded-lg shadow-md ring-1 ring-black ring-opacity-5 p-4">
