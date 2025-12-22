@@ -483,6 +483,7 @@ const MainContent = () => {
 
         <main className="space-y-6">
           <ShiftSchedule 
+            isAdmin={isAdmin} // ★追加
             currentUser={currentUser} schedule={currentMonthSchedule} staff={staff} days={days} holidays={currentMonthHolidays} shiftPatterns={shiftPatterns} year={year} month={month}
             onUpdateSchedule={handleUpdateSchedule} onDeleteStaff={handleDeleteStaff} onUpdateStaffInfo={handleUpdateStaffInfo}
             onApplyStaffPattern={handleApplySingleStaffPattern} onToggleShiftSubmitted={handleToggleShiftSubmitted}
@@ -493,6 +494,7 @@ const MainContent = () => {
           <ShiftPatternDisplay patterns={shiftPatterns} onAddPattern={(p) => setShiftPatterns(prev => [...prev, p].sort((a,b)=>a.id.localeCompare(b.id)))} />
           
           <TaskShortageDisplay 
+            isAdmin={isAdmin} // ★追加
             currentUser={currentUser} tasks={tasks} staff={staff} days={days} holidays={currentMonthHolidays} taskCountsByDay={taskCountsByDay}
             onUpdateTask={(id, name) => setTasks(prev => prev.map(t => t.id === id ? { ...t, name } : t))}
             onDeleteTask={handleDeleteTask}
