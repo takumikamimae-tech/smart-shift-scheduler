@@ -91,17 +91,19 @@ const MainContent = () => {
         // Oktaからユーザー情報を取得
         const userInfo = await oktaAuth.getUser();
 
-        // ★変更箇所: データベース上の「email」とOktaの「email」で照合する
+        // データベース上の「email」とOktaの「email」で照合する
         const matchedStaff = staff.find(s => s.email === userInfo.email);
 
         if (matchedStaff) {
-          setCurrentUser(matchedStaff);
+          // DBにいた場合も、念のためOktaのemail情報を付与してセット
+          setCurrentUser({ ...matchedStaff, email: userInfo.email });
         } else {
-          // 名前が一致しない場合は、Oktaの名前で仮ログイン（権限なし）
-          console.log('User name mismatch:', userInfo.name);
+          // DBにいない場合は、Oktaの情報で仮ログイン
+          console.log('User email mismatch:', userInfo.email);
           setCurrentUser({
             id: 'okta-user',
             name: userInfo.name || 'Okta User',
+            email: userInfo.email, // ★重要: ここでemailを保存
             role: 'OP'
           });
         }
@@ -116,7 +118,11 @@ const MainContent = () => {
   }, [authState, oktaAuth, staff]);
 
   // --- 計算ロジック ---
-  const isAdmin = currentUser?.id === 'admin' || currentUser?.id === 'okta-user'; // ※動作確認用に緩めています
+  const isAdmin = 
+    forceAdminMode || 
+    currentUser?.id === 'admin' || 
+    currentUser?.id === 'okta-user' || 
+    (currentUser?.email && ADMIN_EMAILS.includes(currentUser.email));
   const key = `${year}-${month}`;
   const daysInMonth = useMemo(() => new Date(year, month, 0).getDate(), [year, month]);
   const currentMonthHolidays = useMemo(() => getJapaneseHolidays(year, month), [year, month]);
@@ -495,6 +501,16 @@ const MainContent = () => {
               </>
             )}
             <button onClick={handleExportCSV} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">CSV出力</button>
+            
+            {/* ▼▼▼ 追加: 管理者としてログインボタン ▼▼▼ */}
+            {!isAdmin && (
+              <button 
+                onClick={() => setForceAdminMode(true)} 
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+              >
+                管理者としてログイン
+              </button>
+            )}
           </div>
         </main>
 
