@@ -10,7 +10,7 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
     );
   };
 
-  // ★追加: メールアドレス変更用の関数
+  // メールアドレス変更用の関数
   const handleEmailChange = (staffId, newEmail) => {
     setEditedStaff(prevStaff =>
       prevStaff.map(s => (s.id === staffId ? { ...s, email: newEmail } : s))
@@ -18,6 +18,7 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
   };
   
   const handleSave = () => {
+    // PINコードのバリデーションを削除しました
     onSave(editedStaff);
   };
 
@@ -26,7 +27,7 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col">
         <header className="p-4 border-b border-slate-200">
           <h2 className="text-lg font-bold text-slate-800">メンバー管理</h2>
-          <p className="text-sm text-slate-500">メンバーの情報を確認・編集します。PINコードは4桁の数字で設定してください。</p>
+          <p className="text-sm text-slate-500">メンバーの情報を確認・編集します。</p>
         </header>
 
         <main className="p-4 overflow-y-auto flex-grow">
@@ -34,10 +35,10 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">名前</th>
-                {/* ★追加: メールアドレスのヘッダー */}
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">メールアドレス</th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">社員番号</th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">役職</th>
+                {/* PINコードのヘッダーを削除しました */}
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Chat User ID</th>
               </tr>
             </thead>
@@ -46,7 +47,7 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
                 <tr key={member.id}>
                   <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-slate-900">{member.name}</td>
                   
-                  {/* ★追加: メールアドレスの入力欄 */}
+                  {/* メールアドレス入力欄 */}
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">
                     <input
                       type="email"
@@ -57,6 +58,12 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
                     />
                   </td>
 
+                  <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">{member.employeeId}</td>
+                  <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">{member.role}</td>
+                  
+                  {/* PINコードの入力欄セルを削除しました */}
+
+                  <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">
                     <input
                       type="text"
                       value={member.chatUserId || ''}
