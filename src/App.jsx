@@ -493,12 +493,6 @@ const MainContent = () => {
              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-semibold w-36 justify-center ${saveStatus === 'saved' ? 'text-white/80' : saveStatus === 'unsaved' ? 'text-yellow-300' : 'text-white'}`}>
                 <span>{saveStatus === 'saved' ? '自動保存済み' : saveStatus === 'saving' ? '保存中...' : '編集中...'}</span>
              </div>
-             <button onClick={() => setIsHelpOpen(true)} className="px-3 py-1.5 bg-white/20 rounded hover:bg-white/30 text-sm font-bold">ガイド</button>
-             <Legend />
-             {/* ログアウトボタン: Oktaサインアウト */}
-             <button onClick={() => oktaAuth.signOut()} className="px-3 py-1.5 bg-[#D9824D] rounded hover:bg-[#C8713D] text-sm font-bold">ログアウト</button>
-          </div>
-        </header>
 
         <main className="space-y-6">
           <ShiftSchedule 
