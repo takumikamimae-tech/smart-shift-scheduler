@@ -61,7 +61,7 @@ const MainContent = () => {
 
   // 手動で管理者モードにするためのスイッチ
   const [forceAdminMode, setForceAdminMode] = useState(false);
-　
+
   // 管理者ログイン時のパスワード判定関数
   const handleAdminLogin = () => {
     const password = window.prompt("管理者パスワードを入力してください");
@@ -295,6 +295,7 @@ const MainContent = () => {
   const handleDeleteTask = (id) => setConfirmDelete({ type: 'task', id, name: tasks.find(t => t.id === id)?.name });
   const handleExportCSV = () => downloadScheduleCSV({ staff, tasks, schedule, shiftPatterns, taskCountsByDay, days, year, month });
   
+  // 一括更新用
   const handleBulkUpdateStaffTasks = (taskStaffMap) => {
       const staffTaskMap = {};
       staff.forEach(s => staffTaskMap[s.id] = []);
@@ -307,7 +308,7 @@ const MainContent = () => {
       setIsTaskEditorOpen(false);
   };
 
-  // ▼▼▼ 追加: 個別の業務担当者を更新する関数 ▼▼▼
+  // 個別の業務担当者を更新する関数（修正済み）
   const handleUpdateSingleTaskStaff = (taskId, newStaffIds) => {
     setStaff(prevStaff => prevStaff.map(s => {
       const isAssigned = newStaffIds.includes(s.id);
@@ -325,7 +326,7 @@ const MainContent = () => {
       return { ...s, possibleTasks: newTasks };
     }));
   };
-  
+
   const handleApplySingleStaffPattern = (staffId, newPattern) => {
     setStaff(prevStaff => prevStaff.map(s => s.id === staffId ? { ...s, defaultShift: { pattern: newPattern } } : s));
     const key = `${year}-${month}`;
@@ -493,10 +494,15 @@ const MainContent = () => {
              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-semibold w-36 justify-center ${saveStatus === 'saved' ? 'text-white/80' : saveStatus === 'unsaved' ? 'text-yellow-300' : 'text-white'}`}>
                 <span>{saveStatus === 'saved' ? '自動保存済み' : saveStatus === 'saving' ? '保存中...' : '編集中...'}</span>
              </div>
+             <button onClick={() => setIsHelpOpen(true)} className="px-3 py-1.5 bg-white/20 rounded hover:bg-white/30 text-sm font-bold">ガイド</button>
+             <Legend />
+             {/* ログアウトボタンを削除しました */}
+          </div>
+        </header>
 
         <main className="space-y-6">
           <ShiftSchedule 
-            isAdmin={isAdmin} // ★追加
+            isAdmin={isAdmin}
             currentUser={currentUser} schedule={currentMonthSchedule} staff={staff} days={days} holidays={currentMonthHolidays} shiftPatterns={shiftPatterns} year={year} month={month}
             onUpdateSchedule={handleUpdateSchedule} onDeleteStaff={handleDeleteStaff} onUpdateStaffInfo={handleUpdateStaffInfo}
             onApplyStaffPattern={handleApplySingleStaffPattern} onToggleShiftSubmitted={handleToggleShiftSubmitted}
@@ -507,7 +513,7 @@ const MainContent = () => {
           <ShiftPatternDisplay patterns={shiftPatterns} onAddPattern={(p) => setShiftPatterns(prev => [...prev, p].sort((a,b)=>a.id.localeCompare(b.id)))} />
           
           <TaskShortageDisplay 
-            isAdmin={isAdmin} // ★追加
+            isAdmin={isAdmin}
             currentUser={currentUser} tasks={tasks} staff={staff} days={days} holidays={currentMonthHolidays} taskCountsByDay={taskCountsByDay}
             onUpdateTask={(id, name) => setTasks(prev => prev.map(t => t.id === id ? { ...t, name } : t))}
             onDeleteTask={handleDeleteTask}
@@ -527,7 +533,6 @@ const MainContent = () => {
             )}
             <button onClick={handleExportCSV} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">CSV出力</button>
             
-            {/* ▼▼▼ 追加: 管理者としてログインボタン ▼▼▼ */}
             {!isAdmin && (
               <button 
                 onClick={handleAdminLogin} 
