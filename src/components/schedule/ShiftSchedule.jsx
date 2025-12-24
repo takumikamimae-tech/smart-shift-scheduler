@@ -5,7 +5,7 @@ import { DeleteIcon, SetHolidayIcon, UnlockIcon } from '../common/Icons';
 import { summarizePattern } from '../../utils/scheduleUtils';
 
 const ShiftSchedule = ({ 
-    currentUser, isAdmin, // ★追加: isAdminを受け取る
+    currentUser, isAdmin, // ★変更: isAdminを受け取るように修正
     schedule, staff, days, holidays, shiftPatterns, year, month,
     onUpdateSchedule, onDeleteStaff, onUpdateStaffInfo, onApplyStaffPattern, 
     onToggleShiftSubmitted, onToggleShiftApproved, onToggleShiftRemanded, 
@@ -13,7 +13,9 @@ const ShiftSchedule = ({
 }) => {
   // 列の幅設定
   const staffInfoWidth = "60px 100px 120px 150px 60px 60px 60px 40px";
-  // const isAdmin = currentUser.id === 'admin'; // ★削除またはコメントアウト
+  
+  // ★削除: ここでisAdminを独自定義していたのを削除
+  // const isAdmin = currentUser.id === 'admin'; 
   
   const patternSummary = (staffMember) => {
       return summarizePattern(staffMember.defaultShift.pattern, shiftPatterns);
@@ -43,7 +45,7 @@ const ShiftSchedule = ({
       <div className="min-w-max">
         <div className="grid" style={{ gridTemplateColumns: `${staffInfoWidth} repeat(${days.length}, minmax(70px, 1fr))`}}>
           
-          {/* --- ヘッダー行（固定設定済み） --- */}
+          {/* --- ヘッダー行 --- */}
           <div className={`${stickyHeaderCellClass} left-0`}>役職</div>
           <div className={`${stickyHeaderCellClass} left-[60px]`}>社員番号</div>
           <div className={`${stickyHeaderCellClass} left-[160px]`}>稼働名前</div>
@@ -56,7 +58,6 @@ const ShiftSchedule = ({
           {days.map(({ day, dayOfWeek }) => {
             const isHoliday = holidays.includes(day);
             const dayHeaderClasses = getDayHeaderClass(dayOfWeek, isHoliday);
-            // その日が全員「休日ロック(locked:true)」されているか判定
             const isDayFullyLocked = staff.length > 0 && staff.every(s => {
                 const entry = schedule[s.id]?.[day];
                 return typeof entry === 'object' && entry !== null && 'type' in entry && entry.type === '休' && 'locked' in entry && entry.locked;
@@ -81,6 +82,7 @@ const ShiftSchedule = ({
 
           {/* --- データ行 --- */}
           {staff.map((staffMember) => {
+            // ★変更: 管理者か、自分の行なら編集可能
             const isEditable = isAdmin || currentUser.id === staffMember.id;
             
             return (
