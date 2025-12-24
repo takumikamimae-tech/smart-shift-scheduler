@@ -4,12 +4,12 @@ import { EditableTaskName } from '../common/EditableCells';
 import TaskStaffSelector from './TaskStaffSelector';
 
 const TaskShortageDisplay = ({
-    currentUser, isAdmin, // ★追加: isAdminを受け取る
+    currentUser, isAdmin, // ★変更: isAdminを受け取るように修正
     tasks, staff, days, holidays, taskCountsByDay, 
     onUpdateTask, onDeleteTask, onUpdateTaskStaff, onUpdateTaskPersonnel
 }) => {
     const staffInfoWidth = "280px"; 
-    // const isAdmin = currentUser.id === 'admin'; // ★削除またはコメントアウト
+    // ★削除: const isAdmin = currentUser.id === 'admin'; 
     
     const getDayHeaderClass = (dayOfWeek, isHoliday) => {
         let baseClasses = "sticky top-0 z-30 p-2 text-xs font-semibold text-center border-b-2 border-r whitespace-nowrap";
