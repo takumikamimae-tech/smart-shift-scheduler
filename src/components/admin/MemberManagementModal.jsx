@@ -38,7 +38,6 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">メールアドレス</th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">社員番号</th>
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">役職</th>
-                {/* PINコードのヘッダーを削除しました */}
                 <th className="px-4 py-2 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Chat User ID</th>
               </tr>
             </thead>
@@ -61,8 +60,6 @@ const MemberManagementModal = ({ staff, onClose, onSave }) => {
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">{member.employeeId}</td>
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">{member.role}</td>
                   
-                  {/* PINコードの入力欄セルを削除しました */}
-
                   <td className="px-4 py-2 whitespace-nowrap text-sm text-slate-600">
                     <input
                       type="text"
