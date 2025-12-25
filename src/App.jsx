@@ -119,7 +119,6 @@ const MainContent = () => {
   // (手動ログイン機能は削除されました)
   const isAdmin = 
     currentUser?.id === 'admin' || 
-    currentUser?.id === 'okta-user' || 
     (currentUser?.email && firebaseAdminEmails.includes(currentUser.email));
     
   const key = `${year}-${month}`;
