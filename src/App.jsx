@@ -72,14 +72,6 @@ const MainContent = () => {
     }
   };
   
-  // 自動で管理者にするメールアドレスのリスト
-  const ADMIN_EMAILS = [
-    'mina.miyashita@neo-career.co.jp',
-    'yuichiro.kikuchi@neo-career.co.jp',
-    'nana.miura@neo-career.co.jp',
-    'h_tomura@neo-career.co.jp'
-  ];
-  
   // UI State
   const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -128,11 +120,20 @@ const MainContent = () => {
   }, [authState, oktaAuth, staff]);
 
   // --- 計算ロジック ---
+  
+  // ★修正: Firebaseの設定(adminConfig)から管理者メールリストを作成
+  const firebaseAdminEmails = useMemo(() => {
+    if (!adminConfig?.adminEmails) return [];
+    // カンマ区切りの文字列を配列に変換し、余計な空白を除去
+    return adminConfig.adminEmails.split(',').map(email => email.trim());
+  }, [adminConfig]);
+
   const isAdmin = 
     forceAdminMode || 
     currentUser?.id === 'admin' || 
     currentUser?.id === 'okta-user' || 
-    (currentUser?.email && ADMIN_EMAILS.includes(currentUser.email));
+    (currentUser?.email && firebaseAdminEmails.includes(currentUser.email));
+    
   const key = `${year}-${month}`;
   const daysInMonth = useMemo(() => new Date(year, month, 0).getDate(), [year, month]);
   const currentMonthHolidays = useMemo(() => getJapaneseHolidays(year, month), [year, month]);
@@ -308,7 +309,7 @@ const MainContent = () => {
       setIsTaskEditorOpen(false);
   };
 
-  // 個別の業務担当者を更新する関数（修正済み）
+  // 個別の業務担当者を更新する関数
   const handleUpdateSingleTaskStaff = (taskId, newStaffIds) => {
     setStaff(prevStaff => prevStaff.map(s => {
       const isAssigned = newStaffIds.includes(s.id);
@@ -326,7 +327,7 @@ const MainContent = () => {
       return { ...s, possibleTasks: newTasks };
     }));
   };
-
+  
   const handleApplySingleStaffPattern = (staffId, newPattern) => {
     setStaff(prevStaff => prevStaff.map(s => s.id === staffId ? { ...s, defaultShift: { pattern: newPattern } } : s));
     const key = `${year}-${month}`;
