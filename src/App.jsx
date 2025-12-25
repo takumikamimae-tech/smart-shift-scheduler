@@ -55,8 +55,11 @@ const MainContent = () => {
   } = useShiftData();
 
   const [currentUser, setCurrentUser] = useState(null);
-  const [year, setYear] = useState(2025);
-  const [month, setMonth] = useState(12);
+  
+  // 現在の日時を取得して初期値にする
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [month, setMonth] = useState(new Date().getMonth() + 1);
+  
   const [taskCountsByDay, setTaskCountsByDay] = useState({});
   
   // UI State
