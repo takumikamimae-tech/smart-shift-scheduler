@@ -58,19 +58,6 @@ const MainContent = () => {
   const [year, setYear] = useState(2025);
   const [month, setMonth] = useState(12);
   const [taskCountsByDay, setTaskCountsByDay] = useState({});
-
-  // 手動で管理者モードにするためのスイッチ
-  const [forceAdminMode, setForceAdminMode] = useState(false);
-
-  // 管理者ログイン時のパスワード判定関数
-  const handleAdminLogin = () => {
-    const password = window.prompt("管理者パスワードを入力してください");
-    if (password === 'digsy-shift-2025') {
-      setForceAdminMode(true);
-    } else if (password !== null) { // キャンセル以外で間違った場合
-      alert("パスワードが違います。");
-    }
-  };
   
   // UI State
   const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(false);
@@ -121,15 +108,16 @@ const MainContent = () => {
 
   // --- 計算ロジック ---
   
-  // ★修正: Firebaseの設定(adminConfig)から管理者メールリストを作成
+  // Firebaseの設定(adminConfig)から管理者メールリストを作成
   const firebaseAdminEmails = useMemo(() => {
     if (!adminConfig?.adminEmails) return [];
     // カンマ区切りの文字列を配列に変換し、余計な空白を除去
     return adminConfig.adminEmails.split(',').map(email => email.trim());
   }, [adminConfig]);
 
+  // 管理者判定: Firebaseの設定に含まれるメールアドレスかどうか
+  // (手動ログイン機能は削除されました)
   const isAdmin = 
-    forceAdminMode || 
     currentUser?.id === 'admin' || 
     currentUser?.id === 'okta-user' || 
     (currentUser?.email && firebaseAdminEmails.includes(currentUser.email));
@@ -219,7 +207,12 @@ const MainContent = () => {
     const { staffId, name } = submissionConfirmation;
     let mentions = '';
     if (adminConfig?.submissionNotificationIds) {
-        mentions = adminConfig.submissionNotificationIds.split(',').map(id => `<users/${id.trim()}>`).join(' ');
+        mentions = adminConfig.submissionNotificationIds
+            .split(',')
+            .map(id => id.trim())
+            .filter(id => id !== '')
+            .map(id => `<users/${id}>`)
+            .join(' ');
     }
     setIsLoading(true);
     setLoadingMessage('提出通知を送信中...');
@@ -534,14 +527,7 @@ const MainContent = () => {
             )}
             <button onClick={handleExportCSV} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">CSV出力</button>
             
-            {!isAdmin && (
-              <button 
-                onClick={handleAdminLogin} 
-                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-              >
-                管理者としてログイン
-              </button>
-            )}
+            {/* 管理者としてログインボタンは削除されました */}
           </div>
         </main>
 
